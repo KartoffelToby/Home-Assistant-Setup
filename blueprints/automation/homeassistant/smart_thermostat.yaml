@@ -1,5 +1,5 @@
 blueprint:
-  name: Smart Thermostat for deCONZ with Euronics Spirit Zigbee
+  name: Smart Thermostat for deCONZ
   description: >-
     Based on your window sensor this automation turns the thermostat on or off.
     In order to avoid heating in summer, you can specify the weather entity and your winter temperature.
