@@ -1,9 +1,11 @@
 blueprint:
   name: Smart Thermostat for deCONZ
   description: >-
-    Based on your window sensor this automation turns the thermostat on or off.
-    In order to avoid heating in summer, you can specify the weather entity and your winter temperature.
-    You must also specify a temperature sensor entity to update the current temperature in the thermostat sensor with the ambient room temperature. (external sensor for room temperature)
+    The most deCONZ Zigbee TVR have an internal Temperature sensor.
+    The fact that this sensor ist located direct to the radiator will generated false measurements.
+    To fix this this blueprint uses an external temperature sensor and adjust the offset of the Thermostat to match the room temperature,
+    it also will be linkt to an External window sensor group to turn off the heating,
+    if a window is open. And also turns off if a specific outside temperature is reached to avoid heating in summer
   domain: automation
   input:
     window_sensor:
