@@ -1,6 +1,20 @@
 # Home-Assistant-Setup
-My personal Home Assistant Setup with deCONZ LIFX and Xiaomi Sensors.
+My personal Home Assistant Setup with deCONZ LIFX and others.
 
+What devices i used so far:
+
+- Euronics Sprit Zigbee Thermostat (deCONZ)
+- Xiaomi Aquara Door/Window Sensor (deCONZ) 
+- Xiaomi Aquara Multi Sensor       (deCONZ)
+- Xiaomi Motion and LUX Sensor     (deCONZ)
+- LIFX LED Strip                   (LIFX)
+- LIFX Mini Color                  (LIFX)
+- LIFX A19 Color                   (LIFX)
+- DIY Plant Spot LED               (ESPHome)
+- DIY BLE to MQTT                  (BLE)
+- VegTrug Plant Sensor             (BLE)
+- DIY Led Strip                    (WLED)
+- Xiaomi Air Purifier mc2          (HACS)
 ---
 
 ## My Blueprints
