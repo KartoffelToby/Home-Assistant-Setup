@@ -1,0 +1,137 @@
+blueprint:
+  name: Smart Thermostat for deCONZ with Euronics Spirit Zigbee
+  description: >-
+    Based on your window sensor this automation turns the thermostat on or off.
+    In order to avoid heating in summer, you can specify the weather entity and your winter temperature.
+    You must also specify a temperature sensor entity to update the current temperature in the thermostat sensor with the ambient room temperature. (external sensor for room temperature)
+  domain: automation
+  input:
+    window_sensor:
+      name: Window(s) / Door Sensor(s)
+      selector:
+        entity:
+          domain: group
+    weather:
+      name: Weather
+      description: "Specify your weather to get the current outside temperature from."
+      selector:
+        entity:
+          domain: weather
+    wintermode:
+      name: Wintermode
+      description: "The ouside temperature needs to be below this to activate wintermode. (Default = 16°C)"
+      default: 16
+      selector:
+        number:
+          step: 0.5
+          min: 0
+          max: 150
+          unit_of_measurement: "°C or °F"
+    wintermode_delay:
+      name: Wintermode Delay
+      description: "Time the outside temperature neeeds to stay above the wintermode temperature to turn the heating off."
+      default: 30
+      selector:
+        number:
+          mode: box
+          min: 1
+          max: 86400
+          unit_of_measurement: minutes
+    temperature:
+      name: External Temperature Sensor
+      selector:
+        entity:
+          domain: sensor
+          device_class: temperature
+    thermostat:
+      name: Thermostat
+      selector:
+        entity:
+          domain: climate
+
+mode: queued
+max_exceeded: silent
+max: 10
+
+variables:
+  temperature: !input temperature
+  thermostat: !input thermostat
+  currenttempoffset: >-
+    {{ ((states(temperature)|float - state_attr(thermostat, 'current_temperature')|float) * 100) }}
+  offset_val:  >-
+    {%- if (currenttempoffset != 0) %}
+      {{ currenttempoffset + (state_attr(thermostat, 'offset')|int) }}
+    {% elif (currenttempoffset == 0) %}
+      {{ state_attr(thermostat, 'offset')|int }}
+    {% endif %}
+trigger_variables:
+  temperature: !input temperature
+  thermostat: !input thermostat
+trigger:
+  - platform: state
+    entity_id: !input thermostat
+    from: 'off'
+    to: 'heat'
+  - platform: template
+    value_template: "{{ state_attr(thermostat, 'current_temperature') }}"
+  - platform: state
+    entity_id: 
+      - !input temperature
+      - !input window_sensor
+  - platform: numeric_state
+    entity_id: !input weather
+    attribute: temperature
+    below: !input wintermode
+    for: !input wintermode_delay
+  - platform: numeric_state
+    entity_id: !input weather
+    attribute: temperature
+    above: !input wintermode
+    for: !input wintermode_delay
+action:
+  - choose:
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: state
+                entity_id: !input window_sensor
+                state: 'off'
+              - condition: numeric_state
+                entity_id: !input weather
+                attribute: temperature
+                below: !input wintermode
+        sequence:
+          - service: deconz.configure
+            data:
+              entity: !input thermostat
+              field: /config
+              data:
+                offset: 0
+          - service: deconz.configure
+            data:
+              entity: !input thermostat
+              field: /config
+              data:
+                offset: >-
+                  {{ offset_val }}
+          - service: climate.set_hvac_mode
+            data:
+              hvac_mode: 'heat'
+            entity_id: !input thermostat
+          - delay: 00:00:05
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: !input window_sensor
+                state: 'on'
+              - condition: numeric_state
+                entity_id: !input weather
+                attribute: temperature
+                above: !input wintermode
+        sequence:
+          - service: climate.set_hvac_mode
+            data:
+              hvac_mode: 'off'
+            entity_id: !input thermostat
+    default: []

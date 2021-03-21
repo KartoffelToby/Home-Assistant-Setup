@@ -1,0 +1,188 @@
+blueprint:
+  name: Deconz - Lights - With Philips Hue Dimmer Switch
+  description: |
+    Control lights like LIFX with a Philips Hue Dimmer Switch.
+
+    The top "on" button will turn the lights on to the last set brightness
+    (unless the force brightness is toggled on in the blueprint).
+
+    Dim up/down buttons will change the brightness smoothly and can be pressed
+    and hold until the brightness is satisfactory.
+
+    The bottom "off" button will turn the lights off.
+
+    Longpress "on" or "off" will turn on hole area of lights.
+
+  domain: automation
+  input:
+    remote:
+      name: Remote
+      description: The remote to use
+      selector:
+        device:
+          integration: deconz
+          manufacturer: Philips
+          model: RWL021
+    singlelight:
+      name: Light(s)
+      description: The light(s) to control on single press
+      selector:
+        target:
+          entity:
+            domain: light
+    multilight:
+      name: Light(s)
+      description: The light(s) to control on long press
+      selector:
+        target:
+          entity:
+            domain: light
+    force_brightness:
+      name: Force turn on brightness
+      description: >
+        Force the brightness to the set level below, when the "on" button on
+        the remote is pushed and lights turn on.
+      default: false
+      selector:
+        boolean:
+    brightness:
+      name: Brightness
+      description: Brightness of the light(s) when turning on
+      default: 100
+      selector:
+        number:
+          min: 0
+          max: 100
+          mode: slider
+          step: 1
+          unit_of_measurement: "%"
+
+mode: queued
+max_exceeded: silent
+
+variables:
+  force_brightness: !input force_brightness
+
+trigger:
+  - platform: event
+    event_type: deconz_event
+    event_data:
+      device_id: !input remote
+
+action:
+  - variables:
+      event: "{{ trigger.event.data.event }}"
+  - choose:
+      - conditions:
+          - "{{ event == 1000 }}"
+        sequence:
+          - choose:
+              - conditions: "{{ force_brightness }}"
+                sequence:
+                  - service: light.turn_on
+                    target: !input singlelight
+                    data:
+                      transition: 3
+                      brightness_pct: !input brightness
+            default:
+              - service: light.turn_on
+                target: !input singlelight
+                data:
+                  transition: 3
+
+      - conditions:
+          - "{{ event == 1001 }}"
+        sequence:
+          - choose:
+              - conditions: "{{ force_brightness }}"
+                sequence:
+                  - service: light.turn_on
+                    target: !input multilight
+                    data:
+                      transition: 3
+                      brightness_pct: !input brightness
+            default:
+              - service: light.turn_on
+                target: !input multilight
+                data:
+                  transition: 3
+
+      - conditions:
+          - "{{ event == 4000 }}"
+        sequence:
+          - service: light.turn_off
+            target: !input singlelight
+            data:
+              transition: 1
+
+      - conditions:
+          - "{{ event == 4001 }}"
+        sequence:
+          - service: light.turn_off
+            target: !input multilight
+            data:
+              transition: 3
+
+      ###########
+      # Raise Dim
+      ###########
+      # Press
+      - conditions:
+          - "{{ event == 2000 }}"
+        sequence:
+          - service: light.turn_on
+            target: !input singlelight
+            data:
+              brightness_step_pct: 5
+              transition: 1
+          - service: light.turn_on
+            target: !input multilight
+            data:
+              brightness_step_pct: 5
+              transition: 1
+
+      # Hold
+      - conditions:
+          - "{{ event == 2001 }}"
+        sequence:
+          - service: light.turn_on
+            target: !input singlelight
+            data:
+              brightness_step_pct: 1
+              transition: 1
+          - service: light.turn_on
+            target: !input multilight
+            data:
+              brightness_step_pct: 1
+              transition: 1
+      ###########
+      # Lower Dim
+      ###########
+      # Press
+      - conditions:
+          - "{{ event == 3000 }}"
+        sequence:
+          - service: light.turn_on
+            target: !input singlelight
+            data:
+              brightness_step_pct: -5
+              transition: 1
+          - service: light.turn_on
+            target: !input multilight
+            data:
+              brightness_step_pct: -5
+              transition: 1
+      # Hold
+      - conditions:
+          - "{{ event == 3001 }}"
+        sequence:
+          - service: light.turn_on
+            target: !input singlelight
+            data:
+              brightness_step_pct: -1
+              transition: 1
+          - service: light.turn_on
+            target: !input multilight
+            data:
+              brightness_step_pct: -1
+              transition: 1
